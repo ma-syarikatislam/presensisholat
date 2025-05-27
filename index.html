@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Form Dropdown dari Spreadsheet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    select { width: 100%; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h2>Form Input Data</h2>
+  <div id="form-container">Loading form...</div>
+
+  <script>
+    // Daftar nama sheet secara manual
+    const sheetNames = [
+      "Guru", "Kelas", "Siswa", "Surat", "Nilai"
+    ];
+
+    // ID dari Google Spreadsheet (dari URL)
+    const sheetId = "1vRK77Wvn8oAEy_MEwguf7TuZfBQ2hI3C6zy9qeJX_Oo";
+
+    // Fungsi untuk mengambil data dari satu sheet
+    async function fetchSheetData(sheetName) {
+      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
+      const response = await fetch(url);
+      const text = await response.text();
+      const json = JSON.parse(text.substring(47).slice(0, -2));
+      const rows = json.table.rows;
+      const values = rows.map(row => row.c[0]?.v).filter(v => v !== null);
+      return values;
+    }
+
+    // Membuat dropdown dari data
+    function createDropdown(labelText, options, name) {
+      const div = document.createElement("div");
+      div.className = "form-group";
+
+      const label = document.createElement("label");
+      label.innerText = labelText;
+      div.appendChild(label);
+
+      const select = document.createElement("select");
+      select.name = name;
+
+      options.forEach(option => {
+        const opt = document.createElement("option");
+        opt.value = option;
+        opt.innerText = option;
+        select.appendChild(opt);
+      });
+
+      div.appendChild(select);
+      return div;
+    }
+
+    async function buildForm() {
+      const container = document.getElementById("form-container");
+      container.innerHTML = ""; // Kosongkan dulu
+
+      for (const sheet of sheetNames) {
+        const data = await fetchSheetData(sheet);
+        const dropdown = createDropdown(sheet, data, sheet.toLowerCase());
+        container.appendChild(dropdown);
+      }
+
+      // Tambahkan tombol submit dummy
+      const btn = document.createElement("button");
+      btn.type = "submit";
+      btn.innerText = "Kirim";
+      btn.onclick = () => alert("Data akan dikirim (fungsi belum aktif).");
+      container.appendChild(btn);
+    }
+
+    buildForm();
+  </script>
+</body>
+</html>
