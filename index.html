@@ -66,25 +66,25 @@
     }
 
     // Isi dropdown Nama Penguji
-    fetchSheet(sheetNames.penguji).then(data => {
+    fetchSheet(sheetNames.Penguji).then(data => {
       const select = document.getElementById('penguji');
       select.innerHTML = '<option value="">Pilih Penguji</option>' + data.map(v => `<option>${v}</option>`).join('');
     });
 
     // Isi dropdown Kelas
-    fetchSheet(sheetNames.kelas).then(data => {
+    fetchSheet(sheetNames.Kelas).then(data => {
       const select = document.getElementById('kelas');
       select.innerHTML = '<option value="">Pilih Kelas</option>' + data.map(v => `<option>${v}</option>`).join('');
     });
 
     // Isi dropdown Surat
-    fetchSheet(sheetNames.surat).then(data => {
+    fetchSheet(sheetNames.Surat).then(data => {
       const select = document.getElementById('surat');
       select.innerHTML = '<option value="">Pilih Surat</option>' + data.map(v => `<option>${v}</option>`).join('');
     });
 
     // Isi dropdown Keterangan
-    fetchSheet(sheetNames.keterangan).then(data => {
+    fetchSheet(sheetNames.Keterangan).then(data => {
       const select = document.getElementById('keterangan');
       select.innerHTML = '<option value="">Pilih Keterangan</option>' + data.map(v => `<option>${v}</option>`).join('');
     });
