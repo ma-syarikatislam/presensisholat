@@ -41,10 +41,10 @@
   </div>
 
   <script>
-    // Link spreadsheet baru
-    const baseUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTB_tGM8oS03LI5hGfh1-lSybXrVewCFMaQGeYMjKTw55tAU_s1E76eqvL0N8Vcpw/gviz/tq?tqx=out:json&sheet=';
+    // Link spreadsheet BARU
+    const baseUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2sH-s2vgdr92fkUTW3szhKHQQPZhuuUXd62S-kk95uVXJ57kVw8LCnkDBMvzaneEP3t5A4-ePE70q/gviz/tq?tqx=out:json&sheet=';
 
-    // Nama sheet sesuai spreadsheet baru
+    // Nama sheet sesuai spreadsheet BARU
     const sheetNames = {
       penguji: 'Nama',
       kelas: 'Kelas',
@@ -62,29 +62,29 @@
       const json = JSON.parse(text.substring(47, text.length - 2));
       const rows = json.table.rows;
       // Ambil kolom B (index 1) jika ada, kalau tidak ambil kolom A (index 0)
-      return rows.map(r => (r.c[1]?.v ?? r.c[0]?.v) ).filter(Boolean);
+      return rows.map(r => (r.c[0]?.v) ).filter(Boolean);
     }
 
     // Isi dropdown Nama Penguji
-    fetchSheet(sheetNames.Penguji).then(data => {
+    fetchSheet(sheetNames.penguji).then(data => {
       const select = document.getElementById('penguji');
       select.innerHTML = '<option value="">Pilih Penguji</option>' + data.map(v => `<option>${v}</option>`).join('');
     });
 
     // Isi dropdown Kelas
-    fetchSheet(sheetNames.Kelas).then(data => {
+    fetchSheet(sheetNames.kelas).then(data => {
       const select = document.getElementById('kelas');
       select.innerHTML = '<option value="">Pilih Kelas</option>' + data.map(v => `<option>${v}</option>`).join('');
     });
 
     // Isi dropdown Surat
-    fetchSheet(sheetNames.Surat).then(data => {
+    fetchSheet(sheetNames.surat).then(data => {
       const select = document.getElementById('surat');
       select.innerHTML = '<option value="">Pilih Surat</option>' + data.map(v => `<option>${v}</option>`).join('');
     });
 
     // Isi dropdown Keterangan
-    fetchSheet(sheetNames.Keterangan).then(data => {
+    fetchSheet(sheetNames.keterangan).then(data => {
       const select = document.getElementById('keterangan');
       select.innerHTML = '<option value="">Pilih Keterangan</option>' + data.map(v => `<option>${v}</option>`).join('');
     });
