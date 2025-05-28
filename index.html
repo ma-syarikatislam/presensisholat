@@ -15,20 +15,13 @@
             <!-- Kotak 1: Nama Penguji -->
             <label for="penguji">Nama Penguji:</label>
             <select id="penguji" name="penguji" required>
-                <option value="" disabled selected>Pilih Penguji</option>
-                <option value="Ustadz Ahmad">Ustadz Ahmad</option>
-                <option value="Ustadzah Siti">Ustadzah Siti</option>
-                <option value="Ustadz Budi">Ustadz Budi</option>
+                <option value="" disabled selected>Memuat...</option>
             </select>
 
             <!-- Kotak 2: Kelas -->
             <label for="kelas">Kelas:</label>
             <select id="kelas" name="kelas" required>
                 <option value="" disabled selected>Pilih Kelas</option>
-                <option value="1A">1A</option>
-                <option value="1B">1B</option>
-                <option value="2A">2A</option>
-                <option value="2B">2B</option>
             </select>
 
             <!-- Kotak 3: Nama Siswa (berubah sesuai kelas) -->
@@ -41,9 +34,12 @@
             <label for="surat">Surat:</label>
             <select id="surat" name="surat" required>
                 <option value="" disabled selected>Pilih Surat</option>
-                <option value="Al-Fatihah">Al-Fatihah</option>
-                <option value="An-Nas">An-Nas</option>
-                <option value="Al-Falaq">Al-Falaq</option>
+            </select>
+            
+            <!-- Tambahkan setelah field Surat -->
+            <label for="keterangan">Keterangan:</label>
+            <select id="keterangan" name="keterangan" required>
+                <option value="" disabled selected>Pilih Keterangan</option>
             </select>
 
             <!-- Kotak 5: Catatan -->
