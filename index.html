@@ -1,54 +1,95 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Penilaian Hafalan Quran</title>
-    <link rel="stylesheet" href="style.css" />
-    <script src="script.js" defer></script>
+  <meta charset="UTF-8">
+  <title>Autocomplete Nama dari Google Sheet</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+    }
+
+    .autocomplete-container {
+      position: relative;
+      width: 300px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      font-size: 16px;
+    }
+
+    .autocomplete-items {
+      position: absolute;
+      border: 1px solid #ccc;
+      border-top: none;
+      z-index: 99;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background-color: white;
+    }
+
+    .autocomplete-item {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .autocomplete-item:hover {
+      background-color: #f0f0f0;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Penilaian Tahfidz</h1>
 
-        <form id="penilaianForm">
-            <!-- Kotak 1: Nama Penguji -->
-            <label for="penguji">Nama Penguji:</label>
-            <select id="penguji" name="penguji" required>
-                <option value="" disabled selected>Memuat...</option>
-            </select>
+<h2>Ketik Nama:</h2>
+<div class="autocomplete-container">
+  <input id="namaInput" type="text" placeholder="Masukkan nama siswa...">
+  <div id="autocompleteList" class="autocomplete-items"></div>
+</div>
 
-            <!-- Kotak 2: Kelas -->
-            <label for="kelas">Kelas:</label>
-            <select id="kelas" name="kelas" required>
-                <option value="" disabled selected>Pilih Kelas</option>
-            </select>
+<script>
+  const input = document.getElementById("namaInput");
+  const autocompleteList = document.getElementById("autocompleteList");
+  let namaList = [];
 
-            <!-- Kotak 3: Nama Siswa (berubah sesuai kelas) -->
-            <label for="siswa">Nama Siswa:</label>
-            <select id="siswa" name="siswa" required>
-                <option value="" disabled selected>Pilih kelas dulu</option>
-            </select>
+  // Ambil CSV dari Google Sheet
+  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQU_tNieMP9WjD5SIWThq74Z4i2Ygch2ADAP1rnOpmZhVGvC4HuICI9EP5RAtJ_TL99DwBMTXHsy9Dg/pub?gid=1997126631&single=true&output=csv")
+    .then(response => response.text())
+    .then(csv => {
+      // Pisahkan CSV jadi array baris
+      const rows = csv.split("\n");
+      // Ambil nama dari baris (tanpa header, jika ada)
+      namaList = rows.slice(1).map(row => row.trim()).filter(n => n);
+    });
 
-            <!-- Kotak 4: Surat -->
-            <label for="surat">Surat:</label>
-            <select id="surat" name="surat" required>
-                <option value="" disabled selected>Pilih Surat</option>
-            </select>
-            
-            <!-- Tambahkan setelah field Surat -->
-            <label for="keterangan">Keterangan:</label>
-            <select id="keterangan" name="keterangan" required>
-                <option value="" disabled selected>Pilih Keterangan</option>
-            </select>
+  input.addEventListener("input", function () {
+    const query = this.value.toLowerCase();
+    autocompleteList.innerHTML = "";
 
-            <!-- Kotak 5: Catatan -->
-            <label for="keterangan">Catatan:</label>
-            <textarea id="keterangan" name="keterangan" rows="4" placeholder="Tulis catatan di sini..." required></textarea>
+    if (query.length < 2) return;
 
-            <!-- Tombol Kirim -->
-            <button type="submit">Kirim</button>
-        </form>
-    </div>
+    const matches = namaList.filter(nama => nama.toLowerCase().startsWith(query));
+
+    matches.slice(0, 10).forEach(match => {
+      const item = document.createElement("div");
+      item.classList.add("autocomplete-item");
+      item.textContent = match;
+      item.addEventListener("click", () => {
+        input.value = match;
+        autocompleteList.innerHTML = "";
+      });
+      autocompleteList.appendChild(item);
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target !== input) {
+      autocompleteList.innerHTML = "";
+    }
+  });
+</script>
+
 </body>
 </html>
