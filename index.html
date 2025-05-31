@@ -54,14 +54,12 @@
   const autocompleteList = document.getElementById("autocompleteList");
   let namaList = [];
 
-  // Ambil CSV dari Google Sheet
   fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQU_tNieMP9WjD5SIWThq74Z4i2Ygch2ADAP1rnOpmZhVGvC4HuICI9EP5RAtJ_TL99DwBMTXHsy9Dg/pub?gid=1997126631&single=true&output=csv")
     .then(response => response.text())
     .then(csv => {
-      // Pisahkan CSV jadi array baris
       const rows = csv.split("\n");
-      // Ambil nama dari baris (tanpa header, jika ada)
-      namaList = rows.slice(1).map(row => row.trim()).filter(n => n);
+      // Ambil hanya kolom pertama (nama)
+      namaList = rows.slice(1).map(row => row.split(",")[0].trim()).filter(n => n);
     });
 
   input.addEventListener("input", function () {
