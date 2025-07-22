@@ -10,9 +10,10 @@
       text-align: center;
       padding: 20px;
     }
-    video {
+    #reader {
       width: 100%;
       max-width: 400px;
+      margin: auto;
       border: 2px solid #ccc;
       border-radius: 8px;
     }
@@ -26,40 +27,45 @@
       color: white;
     }
   </style>
+  <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
 
   <h1>Cek Kehadiran</h1>
-  <video id="camera" autoplay playsinline></video>
-  <br>
+  <div id="reader"></div>
   <button onclick="downloadExcel()">Unduh Data</button>
 
-  <!-- Script untuk QR Scanner dan Export -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
     let dataKehadiran = [];
 
-    function startScanner() {
-      const html5QrCode = new Html5Qrcode("camera");
-      const config = { fps: 10, qrbox: { width: 250, height: 250 }, facingMode: "user" }; // kamera depan
+    const html5QrCode = new Html5Qrcode("reader");
+    const qrConfig = { fps: 10, qrbox: 250 };
 
-      html5QrCode.start(
-        { facingMode: "user" },
-        config,
-        qrCodeMessage => {
-          const waktu = new Date().toLocaleString();
-          if (!dataKehadiran.some(item => item.nama === qrCodeMessage)) {
-            dataKehadiran.push({ nama: qrCodeMessage, waktu: waktu });
-            alert("QR Terdeteksi: " + qrCodeMessage);
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        const frontCamera = devices.find(device => device.label.toLowerCase().includes("front")) || devices[0];
+        html5QrCode.start(
+          frontCamera.id,
+          qrConfig,
+          qrMessage => {
+            const waktu = new Date().toLocaleString();
+            if (!dataKehadiran.some(item => item.nama === qrMessage)) {
+              dataKehadiran.push({ nama: qrMessage, waktu: waktu });
+              alert("QR Terdeteksi: " + qrMessage);
+            }
+          },
+          error => {
+            // tidak perlu tampilkan error scanning
           }
-        },
-        errorMessage => {
-          // Tidak tampilkan error
-        }
-      ).catch(err => {
-        alert("Gagal mengakses kamera: " + err);
-      });
-    }
+        ).catch(err => {
+          alert("Gagal memulai kamera: " + err);
+        });
+      } else {
+        alert("Tidak ada kamera terdeteksi.");
+      }
+    }).catch(err => {
+      alert("Gagal mengakses kamera: " + err);
+    });
 
     function downloadExcel() {
       if (dataKehadiran.length === 0) {
@@ -82,8 +88,6 @@
       a.click();
       document.body.removeChild(a);
     }
-
-    window.onload = startScanner;
   </script>
 
 </body>
