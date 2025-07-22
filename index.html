@@ -49,7 +49,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
       font-size: 60px;
-      color: green;
+      color: limegreen;
       animation: fade 1s ease-in-out;
       z-index: 9999;
     }
@@ -64,8 +64,8 @@
   <h1>Presensi Sholat</h1>
   <div id="reader"></div>
   <button id="download">📥 Unduh Data</button>
-  <button id="switch-camera" onclick="switchCamera()">🔁</button>
-  <div id="splash">✔️</div>
+  <button id="switch-camera" onclick="switchCamera()">📷</button>
+  <div id="splash">Mantaf!</div>
 
   <script>
     let dataKehadiran = JSON.parse(localStorage.getItem(getHariIni())) || [];
