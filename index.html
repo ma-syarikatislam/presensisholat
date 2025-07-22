@@ -1,498 +1,90 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Progres Hafalan Juz 30</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+  <meta charset="UTF-8">
+  <title>Cek Kehadiran</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    * { box-sizing: border-box; }
     body {
       font-family: sans-serif;
-      background: #f0f4f8;
-      padding: 1rem;
-      margin: 0;
+      text-align: center;
+      padding: 20px;
     }
-    .container {
-      max-width: 700px;
-      margin: auto;
-      background: white;
-      padding: 1.5rem;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    video {
+      width: 100%;
+      max-width: 400px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
     }
-    h2 { text-align: center; font-size: 1.5rem; }
-    label { display: block; margin-top: 1rem; font-weight: bold; }
-    input[list] {
-      width: 100%; padding: 0.5rem; margin-top: 0.5rem; font-size: 1rem;
-    }
-    .progress {
-      margin-top: 1rem; text-align: center;
-    }
-    .progress-text { font-weight: bold; margin-bottom: 0.5rem; }
-    .progress-text.red { color: red; }
-    .progress-text.green { color: green; }
-    .progress-bar {
-      height: 24px;
-      background: #e0e0e0;
-      border-radius: 12px;
-      overflow: hidden;
-      position: relative;
-    }
-    .progress-bar-inner {
-      height: 100%;
-      background: #4caf50;
-      width: 0%;
-      transition: width 0.5s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      background-color: #4CAF50;
       color: white;
-      font-weight: bold;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-      margin-top: 1rem;
-    }
-    li {
-      padding: 0.75rem;
-      border-bottom: 1px solid #ccc;
-      font-size: 1rem;
-    }
-    .done {
-      background-color: #d4edda;
-      color: #155724;
-    }
-    canvas { margin-top: 2rem; }
-    .list-box {
-      margin-top: 2rem;
-      padding: 1rem;
-      border-radius: 10px;
-    }
-    .belum-setor {
-      background: #ffeaea;
-      color: #c62828;
-    }
-    .sudah-juz {
-      background: #e3f2fd;
-      color: #1565c0;
-    }
-    .list-box h3 { margin-top: 0; }
-    @media (max-width: 600px) {
-      .container { padding: 1rem; }
-      h2 { font-size: 1.25rem; }
-      input[list], li { font-size: 0.95rem; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Progres Hafalan Juz 30</h2>
-    <label for="studentInput">Ketik Nama:</label>
-    <input list="studentList" id="studentInput" name="student" placeholder="Ketik nama siswa..." />
-    <datalist id="studentList"></datalist>
 
-    <div id="progress" class="progress">
-      <div class="progress-text" id="progressText"></div>
-      <div class="progress-bar">
-        <div class="progress-bar-inner" id="progressBar"></div>
-      </div>
-    </div>
-    <ul id="surahList"></ul>
-    <canvas id="pieChart" width="400" height="400"></canvas>
-    <div id="sudahSetorJuz" class="list-box sudah-juz" style="display: none;">
-      <h3>Sudah Setor 1 Juz:</h3>
-      <ul id="juzList"></ul>
-    </div>
-    <div id="belumSetorList" class="list-box belum-setor" style="display: none;">
-      <h3>Belum Setor Sama Sekali:</h3>
-      <ul id="belumList"></ul>
-    </div>
-  </div>
+  <h1>Cek Kehadiran</h1>
+  <video id="camera" autoplay playsinline></video>
+  <br>
+  <button onclick="downloadExcel()">Unduh Data</button>
 
+  <!-- Script untuk QR Scanner dan Export -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
-    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRpOWEh7dh7rvihlonkwPCMQnchwzbQbss-2t1bL-Ql0F_0sofzBDqNPBPDTpa2B56893EwamUDJBs5/pub?gid=0&single=true&output=csv";
+    let dataKehadiran = [];
 
-    let students = [];
-    let surahHeaders = [];
+    function startScanner() {
+      const html5QrCode = new Html5Qrcode("camera");
+      const config = { fps: 10, qrbox: { width: 250, height: 250 }, facingMode: "user" }; // kamera depan
 
-    fetch(SHEET_URL)
-      .then(res => res.text())
-      .then(csv => {
-        const rows = csv.trim().split("\n").map(row => row.split(","));
-        surahHeaders = rows[0].slice(1);
-        students = rows.slice(1).map(row => ({
-          name: row[0],
-          hafalan: row.slice(1).map(val => val.trim() === "1")
-        }));
-
-        const datalist = document.getElementById("studentList");
-        datalist.innerHTML = students.map(s => `<option value="${s.name}">`).join("");
-
-        // PIE CHART
-        let totalSiswa = students.length;
-        let setorPenuh = students.filter(s => s.hafalan.every(Boolean));
-        let sudahSetor = students.filter(s => s.hafalan.some(Boolean) && !s.hafalan.every(Boolean));
-        let belumSetor = students.filter(s => !s.hafalan.some(Boolean));
-
-        const ctx = document.getElementById('pieChart').getContext('2d');
-        new Chart(ctx, {
-          type: 'pie',
-          data: {
-            labels: ['Sudah Setor 1 Juz', 'Sudah Setor Sebagian', 'Belum Setor'],
-            datasets: [{
-              data: [setorPenuh.length, sudahSetor.length, belumSetor.length],
-              backgroundColor: ['#64b5f6', '#4caf50', '#f44336'],
-              borderColor: ['#fff', '#fff', '#fff'],
-              borderWidth: 2
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              datalabels: {
-                color: '#fff',
-                font: { weight: 'bold', size: 14 },
-                formatter: (value, context) => {
-                  const total = setorPenuh.length + sudahSetor.length + belumSetor.length;
-                  return `${Math.round(value / total * 100)}%`;
-                }
-              },
-              legend: { position: 'bottom' },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    let total = setorPenuh.length + sudahSetor.length + belumSetor.length;
-                    let value = context.raw;
-                    let percent = Math.round((value / total) * 100);
-                    return `${context.label}: ${value} siswa (${percent}%)`;
-                  }
-                }
-              }
-            }
-          },
-          plugins: [ChartDataLabels]
-        });
-
-        if (setorPenuh.length > 0) {
-          const juzListEl = document.getElementById("juzList");
-          const wrapper = document.getElementById("sudahSetorJuz");
-          juzListEl.innerHTML = setorPenuh.map(s => s.name).sort().map(n => `<li>${n}</li>`).join("");
-          wrapper.style.display = "block";
+      html5QrCode.start(
+        { facingMode: "user" },
+        config,
+        qrCodeMessage => {
+          const waktu = new Date().toLocaleString();
+          if (!dataKehadiran.some(item => item.nama === qrCodeMessage)) {
+            dataKehadiran.push({ nama: qrCodeMessage, waktu: waktu });
+            alert("QR Terdeteksi: " + qrCodeMessage);
+          }
+        },
+        errorMessage => {
+          // Tidak tampilkan error
         }
-
-        if (belumSetor.length > 0) {
-          const belumListEl = document.getElementById("belumList");
-          const wrapper = document.getElementById("belumSetorList");
-          belumListEl.innerHTML = belumSetor.map(s => s.name).sort().map(n => `<li>${n}</li>`).join("");
-          wrapper.style.display = "block";
-        }
+      ).catch(err => {
+        alert("Gagal mengakses kamera: " + err);
       });
+    }
 
-    document.getElementById("studentInput").addEventListener("change", function () {
-      const name = this.value;
-      const idx = students.findIndex(s => s.name === name);
-      const list = document.getElementById("surahList");
-      const progressText = document.getElementById("progressText");
-      const progressBar = document.getElementById("progressBar");
-
-      list.innerHTML = "";
-      progressText.textContent = "";
-      progressText.classList.remove("red", "green");
-      progressBar.style.width = "0%";
-      progressBar.textContent = "";
-      progressBar.style.backgroundColor = "#e0e0e0";
-
-      if (idx === -1) return;
-
-      const siswa = students[idx];
-      let total = siswa.hafalan.length;
-      let selesai = siswa.hafalan.filter(Boolean).length;
-      let sisa = total - selesai;
-      let persen = Math.round((selesai / total) * 100);
-
-      if (selesai === 0) {
-        progressText.textContent = `Belum Setor Hafalan`;
-        progressText.classList.add("red");
-        progressBar.style.backgroundColor = '#f44336';
-      } else if (persen === 100) {
-        progressText.textContent = `Selamat, kamu sudah menyelesaikan Ujian Hafalan Al-Quran Juz Ke-30`;
-        progressText.classList.add("green");
-        progressBar.style.backgroundColor = '#4caf50';
-        progressBar.textContent = `100%`;
-      } else {
-        progressText.textContent = `Sudah setor hafalan ${selesai} Surat, sisa ${sisa} Surat lagi.`;
-        progressBar.textContent = `${persen}%`;
-
-        if (persen > 70) {
-          progressBar.style.backgroundColor = '#4caf50';
-        } else if (persen >= 50) {
-          progressBar.style.backgroundColor = '#ff9800';
-        } else {
-          progressBar.style.backgroundColor = '#f44336';
-        }
+    function downloadExcel() {
+      if (dataKehadiran.length === 0) {
+        alert("Belum ada data kehadiran.");
+        return;
       }
 
-      progressBar.style.width = `${persen}%`;
-
-      surahHeaders.forEach((surah, i) => {
-        const li = document.createElement("li");
-        li.textContent = surah;
-        if (siswa.hafalan[i]) li.classList.add("done");
-        list.appendChild(li);
+      let table = `<table border="1"><tr><th>Nama</th><th>Waktu Scan</th></tr>`;
+      dataKehadiran.forEach(item => {
+        table += `<tr><td>${item.nama}</td><td>${item.waktu}</td></tr>`;
       });
-    });
+      table += `</table>`;
+
+      const blob = new Blob([table], { type: "application/vnd.ms-excel" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "data_kehadiran.xls";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    window.onload = startScanner;
   </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Progres Hafalan Juz 30</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: sans-serif;
-      background: #f0f4f8;
-      padding: 1rem;
-      margin: 0;
-    }
-    .container {
-      max-width: 700px;
-      margin: auto;
-      background: white;
-      padding: 1.5rem;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    h2 { text-align: center; font-size: 1.5rem; }
-    label { display: block; margin-top: 1rem; font-weight: bold; }
-    input[list] {
-      width: 100%; padding: 0.5rem; margin-top: 0.5rem; font-size: 1rem;
-    }
-    .progress {
-      margin-top: 1rem; text-align: center;
-    }
-    .progress-text { font-weight: bold; margin-bottom: 0.5rem; }
-    .progress-text.red { color: red; }
-    .progress-text.green { color: green; }
-    .progress-bar {
-      height: 24px;
-      background: #e0e0e0;
-      border-radius: 12px;
-      overflow: hidden;
-      position: relative;
-    }
-    .progress-bar-inner {
-      height: 100%;
-      background: #4caf50;
-      width: 0%;
-      transition: width 0.5s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-      margin-top: 1rem;
-    }
-    li {
-      padding: 0.75rem;
-      border-bottom: 1px solid #ccc;
-      font-size: 1rem;
-    }
-    .done {
-      background-color: #d4edda;
-      color: #155724;
-    }
-    canvas { margin-top: 2rem; }
-    .list-box {
-      margin-top: 2rem;
-      padding: 1rem;
-      border-radius: 10px;
-    }
-    .belum-setor {
-      background: #ffeaea;
-      color: #c62828;
-    }
-    .sudah-juz {
-      background: #e3f2fd;
-      color: #1565c0;
-    }
-    .list-box h3 { margin-top: 0; }
-    @media (max-width: 600px) {
-      .container { padding: 1rem; }
-      h2 { font-size: 1.25rem; }
-      input[list], li { font-size: 0.95rem; }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>Progres Hafalan Juz 30</h2>
-    <label for="studentInput">Ketik Nama:</label>
-    <input list="studentList" id="studentInput" name="student" placeholder="Ketik nama siswa..." />
-    <datalist id="studentList"></datalist>
 
-    <div id="progress" class="progress">
-      <div class="progress-text" id="progressText"></div>
-      <div class="progress-bar">
-        <div class="progress-bar-inner" id="progressBar"></div>
-      </div>
-    </div>
-    <ul id="surahList"></ul>
-    <canvas id="pieChart" width="400" height="400"></canvas>
-    <div id="sudahSetorJuz" class="list-box sudah-juz" style="display: none;">
-      <h3>Sudah Setor 1 Juz:</h3>
-      <ul id="juzList"></ul>
-    </div>
-    <div id="belumSetorList" class="list-box belum-setor" style="display: none;">
-      <h3>Belum Setor Sama Sekali:</h3>
-      <ul id="belumList"></ul>
-    </div>
-  </div>
-
-  <script>
-    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRpOWEh7dh7rvihlonkwPCMQnchwzbQbss-2t1bL-Ql0F_0sofzBDqNPBPDTpa2B56893EwamUDJBs5/pub?gid=0&single=true&output=csv";
-
-    let students = [];
-    let surahHeaders = [];
-
-    fetch(SHEET_URL)
-      .then(res => res.text())
-      .then(csv => {
-        const rows = csv.trim().split("\n").map(row => row.split(","));
-        surahHeaders = rows[0].slice(1);
-        students = rows.slice(1).map(row => ({
-          name: row[0],
-          hafalan: row.slice(1).map(val => val.trim() === "1")
-        }));
-
-        const datalist = document.getElementById("studentList");
-        datalist.innerHTML = students.map(s => `<option value="${s.name}">`).join("");
-
-        // PIE CHART
-        let totalSiswa = students.length;
-        let setorPenuh = students.filter(s => s.hafalan.every(Boolean));
-        let sudahSetor = students.filter(s => s.hafalan.some(Boolean) && !s.hafalan.every(Boolean));
-        let belumSetor = students.filter(s => !s.hafalan.some(Boolean));
-
-        const ctx = document.getElementById('pieChart').getContext('2d');
-        new Chart(ctx, {
-          type: 'pie',
-          data: {
-            labels: ['Sudah Setor 1 Juz', 'Sudah Setor Sebagian', 'Belum Setor'],
-            datasets: [{
-              data: [setorPenuh.length, sudahSetor.length, belumSetor.length],
-              backgroundColor: ['#64b5f6', '#4caf50', '#f44336'],
-              borderColor: ['#fff', '#fff', '#fff'],
-              borderWidth: 2
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              datalabels: {
-                color: '#fff',
-                font: { weight: 'bold', size: 14 },
-                formatter: (value, context) => {
-                  const total = setorPenuh.length + sudahSetor.length + belumSetor.length;
-                  return `${Math.round(value / total * 100)}%`;
-                }
-              },
-              legend: { position: 'bottom' },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    let total = setorPenuh.length + sudahSetor.length + belumSetor.length;
-                    let value = context.raw;
-                    let percent = Math.round((value / total) * 100);
-                    return `${context.label}: ${value} siswa (${percent}%)`;
-                  }
-                }
-              }
-            }
-          },
-          plugins: [ChartDataLabels]
-        });
-
-        if (setorPenuh.length > 0) {
-          const juzListEl = document.getElementById("juzList");
-          const wrapper = document.getElementById("sudahSetorJuz");
-          juzListEl.innerHTML = setorPenuh.map(s => s.name).sort().map(n => `<li>${n}</li>`).join("");
-          wrapper.style.display = "block";
-        }
-
-        if (belumSetor.length > 0) {
-          const belumListEl = document.getElementById("belumList");
-          const wrapper = document.getElementById("belumSetorList");
-          belumListEl.innerHTML = belumSetor.map(s => s.name).sort().map(n => `<li>${n}</li>`).join("");
-          wrapper.style.display = "block";
-        }
-      });
-
-    document.getElementById("studentInput").addEventListener("change", function () {
-      const name = this.value;
-      const idx = students.findIndex(s => s.name === name);
-      const list = document.getElementById("surahList");
-      const progressText = document.getElementById("progressText");
-      const progressBar = document.getElementById("progressBar");
-
-      list.innerHTML = "";
-      progressText.textContent = "";
-      progressText.classList.remove("red", "green");
-      progressBar.style.width = "0%";
-      progressBar.textContent = "";
-      progressBar.style.backgroundColor = "#e0e0e0";
-
-      if (idx === -1) return;
-
-      const siswa = students[idx];
-      let total = siswa.hafalan.length;
-      let selesai = siswa.hafalan.filter(Boolean).length;
-      let sisa = total - selesai;
-      let persen = Math.round((selesai / total) * 100);
-
-      if (selesai === 0) {
-        progressText.textContent = `Belum Setor Hafalan`;
-        progressText.classList.add("red");
-        progressBar.style.backgroundColor = '#f44336';
-      } else if (persen === 100) {
-        progressText.textContent = `Selamat, kamu sudah menyelesaikan Ujian Hafalan Al-Quran Juz Ke-30`;
-        progressText.classList.add("green");
-        progressBar.style.backgroundColor = '#4caf50';
-        progressBar.textContent = `100%`;
-      } else {
-        progressText.textContent = `Sudah setor hafalan ${selesai} Surat, sisa ${sisa} Surat lagi.`;
-        progressBar.textContent = `${persen}%`;
-
-        if (persen > 70) {
-          progressBar.style.backgroundColor = '#4caf50';
-        } else if (persen >= 50) {
-          progressBar.style.backgroundColor = '#ff9800';
-        } else {
-          progressBar.style.backgroundColor = '#f44336';
-        }
-      }
-
-      progressBar.style.width = `${persen}%`;
-
-      surahHeaders.forEach((surah, i) => {
-        const li = document.createElement("li");
-        li.textContent = surah;
-        if (siswa.hafalan[i]) li.classList.add("done");
-        list.appendChild(li);
-      });
-    });
-  </script>
 </body>
 </html>
