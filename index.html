@@ -28,8 +28,32 @@
       color: white;
       cursor: pointer;
     }
+
+    /* Splash Checklist Animation */
+    #splash {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(76, 175, 80, 0.9);
+      color: white;
+      border-radius: 50%;
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    #splash.show {
+      opacity: 1;
+    }
   </style>
-  <!-- Library QR -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
@@ -37,6 +61,9 @@
   <h1>Cek Kehadiran</h1>
   <div id="reader"></div>
   <button onclick="downloadExcel()">Unduh Data</button>
+
+  <!-- Splash checklist -->
+  <div id="splash">✔️</div>
 
   <script>
     let dataKehadiran = [];
@@ -56,15 +83,11 @@
 
             if (!sudahAda) {
               dataKehadiran.push({ nama: qrMessage, waktu: waktu });
-
-              // Vibrasi 200ms jika didukung
-              if (navigator.vibrate) {
-                navigator.vibrate(200);
-              }
+              showSplash(); // tampilkan animasi checklist
             }
           },
           error => {
-            // Tidak perlu tampilkan error scanning
+            // Tidak tampilkan error scanning
           }
         ).catch(err => {
           alert("Gagal memulai kamera: " + err);
@@ -75,6 +98,14 @@
     }).catch(err => {
       alert("Gagal mengakses kamera: " + err);
     });
+
+    function showSplash() {
+      const splash = document.getElementById("splash");
+      splash.classList.add("show");
+      setTimeout(() => {
+        splash.classList.remove("show");
+      }, 800); // tampil selama 0.8 detik
+    }
 
     function downloadExcel() {
       if (dataKehadiran.length === 0) {
