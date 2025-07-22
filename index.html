@@ -19,7 +19,7 @@
       border-radius: 8px;
     }
     button {
-      margin-top: 20px;
+      margin: 10px 5px;
       padding: 10px 20px;
       font-size: 16px;
       border-radius: 6px;
@@ -29,7 +29,7 @@
       cursor: pointer;
     }
 
-    /* Splash Checklist Animation */
+    /* Splash Checklist */
     #splash {
       position: fixed;
       top: 50%;
@@ -66,7 +66,25 @@
   <div id="splash">✔️</div>
 
   <script>
+    const todayKey = getTodayKey(); // format: "dataKehadiran-2025-07-22"
     let dataKehadiran = [];
+
+    // Ambil data hari ini dari localStorage
+    if (localStorage.getItem(todayKey)) {
+      dataKehadiran = JSON.parse(localStorage.getItem(todayKey));
+    }
+
+    function simpanKeLocalStorage() {
+      localStorage.setItem(todayKey, JSON.stringify(dataKehadiran));
+    }
+
+    function getTodayKey() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      return `dataKehadiran-${yyyy}-${mm}-${dd}`;
+    }
 
     const html5QrCode = new Html5Qrcode("reader");
     const qrConfig = { fps: 10, qrbox: 250 };
@@ -83,11 +101,12 @@
 
             if (!sudahAda) {
               dataKehadiran.push({ nama: qrMessage, waktu: waktu });
-              showSplash(); // tampilkan animasi checklist
+              simpanKeLocalStorage();
+              showSplash();
             }
           },
           error => {
-            // Tidak tampilkan error scanning
+            // abaikan error scanning
           }
         ).catch(err => {
           alert("Gagal memulai kamera: " + err);
@@ -104,12 +123,12 @@
       splash.classList.add("show");
       setTimeout(() => {
         splash.classList.remove("show");
-      }, 800); // tampil selama 0.8 detik
+      }, 800);
     }
 
     function downloadExcel() {
       if (dataKehadiran.length === 0) {
-        alert("Belum ada data kehadiran.");
+        alert("Belum ada data kehadiran hari ini.");
         return;
       }
 
@@ -123,7 +142,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "data_kehadiran.xls";
+      a.download = `${todayKey}.xls`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
