@@ -9,6 +9,7 @@
       font-family: sans-serif;
       text-align: center;
       padding: 20px;
+      background-color: #f9f9f9;
     }
     #reader {
       width: 100%;
@@ -25,8 +26,10 @@
       border: none;
       background-color: #4CAF50;
       color: white;
+      cursor: pointer;
     }
   </style>
+  <!-- Library QR -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
@@ -49,13 +52,19 @@
           qrConfig,
           qrMessage => {
             const waktu = new Date().toLocaleString();
-            if (!dataKehadiran.some(item => item.nama === qrMessage)) {
+            const sudahAda = dataKehadiran.some(item => item.nama === qrMessage);
+
+            if (!sudahAda) {
               dataKehadiran.push({ nama: qrMessage, waktu: waktu });
-              alert("QR Terdeteksi: " + qrMessage);
+
+              // Vibrasi 200ms jika didukung
+              if (navigator.vibrate) {
+                navigator.vibrate(200);
+              }
             }
           },
           error => {
-            // tidak perlu tampilkan error scanning
+            // Tidak perlu tampilkan error scanning
           }
         ).catch(err => {
           alert("Gagal memulai kamera: " + err);
