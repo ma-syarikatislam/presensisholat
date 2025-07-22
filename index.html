@@ -75,7 +75,7 @@
     let dataKehadiran = JSON.parse(localStorage.getItem(getHariIni())) || [];
     let html5QrCode = new Html5Qrcode("reader");
     let qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
-    let currentCameraIndex = 0;
+    let currentCameraIndex = 1;
     let allDevices = [];
 
     function getHariIni() {
