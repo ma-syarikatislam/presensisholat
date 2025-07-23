@@ -51,7 +51,7 @@
       padding: 20px 40px;
       font-size: 48px;
       font-weight: bold;
-      color: blue;
+      color: white;
       background-color: white;
       border-radius: 20px;
       animation: fade 1s ease-in-out;
@@ -69,7 +69,7 @@
   <div id="reader"></div>
   <button id="download">📥 Unduh Data</button>
   <button id="switch-camera" onclick="switchCamera()">📷</button>
-  <div id="splash">Mantaf!</div>
+  <div id="splash"></div>
 
   <script>
     let dataKehadiran = JSON.parse(localStorage.getItem(getHariIni())) || [];
@@ -87,8 +87,11 @@
       localStorage.setItem(getHariIni(), JSON.stringify(dataKehadiran));
     }
 
-    function showSplash() {
+    function showSplash(text, color) {
       const splash = document.getElementById("splash");
+      splash.textContent = text;
+      splash.style.color = color;
+      splash.style.backgroundColor = "white";
       splash.style.display = "block";
       setTimeout(() => splash.style.display = "none", 1000);
     }
@@ -99,12 +102,17 @@
         qrConfig,
         qrMessage => {
           const waktu = new Date().toLocaleString();
-          const sudahAda = dataKehadiran.some(item => item.nama === qrMessage);
 
-          if (!sudahAda) {
-            dataKehadiran.push({ nama: qrMessage, waktu: waktu });
-            simpanKeLocalStorage();
-            showSplash();
+          if (qrMessage.startsWith("20280454")) {
+            const nama = qrMessage;
+            const sudahAda = dataKehadiran.some(item => item.nama === nama);
+            if (!sudahAda) {
+              dataKehadiran.push({ nama: nama, waktu: waktu });
+              simpanKeLocalStorage();
+              showSplash("Mantaf!", "limegreen");
+            }
+          } else {
+            showSplash("❌", "red");
           }
         },
         error => {}
