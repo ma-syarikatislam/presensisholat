@@ -28,7 +28,7 @@
     .toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:#0e1626; border:1px solid #2e3d60; padding:10px 14px; border-radius:999px; display:none; }
     .tag { font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid #2a3b61; color:#a7c4ff; }
 
-    /* Splash success / duplicate */
+    /* Splash */
     .splash { position:fixed; inset:0; display:none; align-items:center; justify-content:center;
               background:rgba(0,0,0,.4); z-index:9999; pointer-events:none; }
     .badge { width:180px; height:180px; border-radius:9999px; border:3px solid; display:flex;
@@ -59,15 +59,17 @@
     <div class="card">
       <div class="row">
         <strong>Daftar Presensi</strong>
-        <button id="downloadBtn">Unduh Data</button>
+        <div class="row">
+          <button id="downloadBtn">Unduh</button>
+          <button id="shareBtn">Bagikan</button>
+        </div>
       </div>
       <div class="list" id="list"></div>
     </div>
   </main>
 
   <footer>
-    <span class="pill">Format QR: <code>20280454-Nama Siswa</code></span>
-    <span class="pill">Data hilang jika browser ditutup</span>
+    <span class="pill">Unduh data sebelum menutup aplikasi!</span>
   </footer>
 </div>
 
@@ -87,13 +89,12 @@
 
   // ====== Audio ======
   const beepEl = document.getElementById("beepOk");
-  let audioPrimed = false;
   function primeAudio() {
-    if (audioPrimed || !beepEl) return;
+    if (!beepEl) return;
+    // prime di awal tanpa interaksi user (agar siap play)
     beepEl.muted = true;
     beepEl.play().then(() => {
       beepEl.pause(); beepEl.currentTime = 0; beepEl.muted = false;
-      audioPrimed = true;
     }).catch(()=>{});
   }
   function playBeep() {
@@ -115,15 +116,32 @@
 
   // ====== Toast ======
   const toastEl = document.getElementById("toast");
-  let toastTimer;
   function toast(msg) {
     toastEl.textContent = msg;
     toastEl.style.display = "block";
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(()=> toastEl.style.display = "none", 1400);
+    setTimeout(()=> toastEl.style.display = "none", 1400);
   }
 
-  // ====== Logic Simpan ======
+  // ====== CSV Helper ======
+  function toCSV(rows) {
+    const header = ["Nama Siswa","Waktu"];
+    return [header.join(","), ...rows.map(x => `"${x.nama.replace(/"/g,'""')}","${new Date(x.t).toLocaleString()}"`)].join("\r\n");
+  }
+  function todayFilename() {
+    const now = new Date();
+    return `${String(now.getDate()).padStart(2,"0")}-${String(now.getMonth()+1).padStart(2,"0")}-${now.getFullYear()}.csv`;
+  }
+  function triggerDownloadCsv(rows) {
+    const csv = toCSV(rows);
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = todayFilename();
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // ====== Simpan Nama ======
   function upsertNama(nama) {
     const list = loadData();
     const isDup = list.some(x => x.nama.toLowerCase() === nama.toLowerCase());
@@ -150,48 +168,41 @@
   }
   renderList();
 
-  // ====== QR Parsing ======
+  // ====== QR Parsing VALIDASI AWALAN ======
   function extractNamaFromQR(text) {
-    const m = String(text || "").trim().match(/^(\d{8})-(.+)$/);
-    return m ? m[2].trim() : null;
+    const m = String(text || "").trim().match(/^20280454-(.+)$/);
+    return m ? m[1].trim() : null;
   }
 
   // ====== Kamera ======
   let html5Qr, scanning = false, coolDown = false;
   let devices = [];
-  let camIndex = 0; // 0: belakang, 1: depan
+  let camIndex = 0;
 
   const statusEl = document.getElementById("status");
   const switchBtn = document.getElementById("switchBtn");
 
   async function listCameras() {
     devices = await Html5Qrcode.getCameras();
-    // Prioritaskan kamera belakang (index 0) jika ada
     const backIndex = devices.findIndex(d => /(back|rear|environment|world|belakang)/i.test(d.label || ""));
-    if (backIndex > -1) camIndex = backIndex;
-    else camIndex = 0;
+    camIndex = backIndex > -1 ? backIndex : 0;
   }
 
   async function startCamera() {
     if (!devices.length) await listCameras();
-    if (!devices.length) {
-      statusEl.innerHTML = "Tidak ada kamera terdeteksi";
-      return;
-    }
-    primeAudio();
+    if (!devices.length) { statusEl.textContent = "Tidak ada kamera terdeteksi"; return; }
     if (!html5Qr) html5Qr = new Html5Qrcode("camera", { verbose: false });
-
     try {
       await html5Qr.start(
         { deviceId: { exact: devices[camIndex].id } },
-        { fps:18, qrbox: { width:320, height:320 } },
+        { fps:18, qrbox: { width: Math.min(320, window.innerWidth), height: Math.min(320, window.innerWidth) } },
         onScanSuccess,
-        onScanError
+        ()=>{}
       );
       scanning = true;
-      statusEl.innerHTML = "Memindai…";
-    } catch (e) {
-      statusEl.innerHTML = "Gagal memulai kamera";
+      statusEl.textContent = "Memindai…";
+    } catch {
+      statusEl.textContent = "Gagal memulai kamera";
     }
   }
 
@@ -205,7 +216,7 @@
 
   async function switchCamera() {
     if (!devices.length) return;
-    camIndex = (camIndex + 1) % devices.length; // toggle
+    camIndex = (camIndex + 1) % devices.length;
     await stopCamera();
     await startCamera();
   }
@@ -216,31 +227,69 @@
     if (coolDown) return;
     coolDown = true;
     setTimeout(()=> coolDown = false, 900);
-    const nama = extractNamaFromQR(decodedText);
-    if (nama) upsertNama(nama);
-    else statusEl.innerHTML = "Format QR tidak sesuai!";
-  }
-  function onScanError() {}
 
-  // ====== Unduh CSV ======
+    const nama = extractNamaFromQR(decodedText);
+    if (nama) {
+      upsertNama(nama);
+    } else {
+      showSplash("err");
+      statusEl.textContent = "QR tidak valid";
+    }
+  }
+
+  // ====== Tombol Unduh dan Bagikan ======
   document.getElementById("downloadBtn").addEventListener("click", () => {
     const rows = loadData().sort((a,b)=>a.nama.localeCompare(b.nama,'id'));
-    const header = ["Nama Siswa","Waktu"];
-    const csv = [header.join(","), ...rows.map(x => `"${x.nama}","${new Date(x.t).toLocaleString()}"`)].join("\r\n");
-    const now = new Date();
-    const filename = `${String(now.getDate()).padStart(2,"0")}-${String(now.getMonth()+1).padStart(2,"0")}-${now.getFullYear()}.csv`;
-    const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
+    triggerDownloadCsv(rows);
+  });
+
+  document.getElementById("shareBtn").addEventListener("click", () => {
+    const rows = loadData().sort((a,b)=>a.nama.localeCompare(b.nama,'id'));
+    if (!rows.length) { toast("Tidak ada data untuk dibagikan"); return; }
+
+    const csv = toCSV(rows);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const file = new File([blob], todayFilename(), { type: "text/csv" });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({
+        title: "Presensi Siswa",
+        text: "Berikut data presensi terbaru",
+        files: [file]
+      }).catch(()=>{});
+    } else {
+      // fallback: Email atau WhatsApp
+      const encoded = encodeURIComponent(csv);
+      const mailto = `mailto:?subject=Presensi Siswa&body=${encodeURIComponent('Berikut data presensi:\n\n')}${encoded}`;
+      const wa = `https://wa.me/?text=${encodeURIComponent('Berikut data presensi:\n\n')}${encoded}`;
+      if (confirm("Bagikan via WhatsApp? Tekan Batal untuk email.")) {
+        window.open(wa, "_blank");
+      } else {
+        window.location.href = mailto;
+      }
+    }
+  });
+
+  // ====== Unduh otomatis saat keluar ======
+  let autoDownloaded = false;
+  function autoDownloadOnClose() {
+    if (autoDownloaded) return;
+    const rows = loadData();
+    if (!rows.length) return;
+    autoDownloaded = true;
+    triggerDownloadCsv(rows);
+  }
+  window.addEventListener('pagehide', autoDownloadOnClose);
+  window.addEventListener('beforeunload', autoDownloadOnClose);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') autoDownloadOnClose();
   });
 
   // ====== Jalankan otomatis ======
   document.addEventListener("DOMContentLoaded", async () => {
+    primeAudio(); // Prime audio langsung saat buka web
     await listCameras();
-    await startCamera(); // auto start kamera belakang
+    await startCamera();
   });
 </script>
 </body>
